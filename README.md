@@ -56,11 +56,11 @@ Create a new lambda function in the AWS console - give it a meaningful name. Sel
 In permissions, select "Create a new role with basic Lambda permissions". Then you press "Create function" and upload the awsCodePipelineDeployer.zip you generated earlier as function code. In basic settings, you need to change Handler to awsCodePipelineDeployer. You should also consider extending the timeout to something reasonable depending on how large your artifacts are.
 
 Now you need to configure the function. That is done in the Environment variables section. You need to set up the following variables:
-- REGION = <your region>
-- BUCKET = <destination bucket name>
-- PREFIX = <optional prefix> - if you want the artifacts to be uploaded in a directory, enter this here. Remember to prefix with a slash - '/'
-- ACCESSKEYID = <the access key ID from the user you generated>
-- SECRETACCESSKEY = <the secret access key from the user you generated>
+- REGION = &lt;your region&gt;
+- BUCKET = &lt;destination bucket name&gt;
+- PREFIX = &lt;optional prefix&gt; - if you want the artifacts to be uploaded in a directory, enter this here. Remember to prefix with a slash - '/'
+- ACCESSKEYID = &lt;the access key ID from the user you generated&gt;
+- SECRETACCESSKEY = &lt;the secret access key from the user you generated&gt;
 
 Finally, you have to create a new policy that you have to attach to the role the lambda function is using. You can see the name of the role in the Permissions tab of the lambda function. The new policy grants the lambda function the ability to report back to AWS CodePipeline that the deployment has succeeded/failed:
 
