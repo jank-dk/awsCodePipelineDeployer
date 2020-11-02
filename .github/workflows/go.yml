@@ -26,7 +26,16 @@ jobs:
         go get -v -t -d ./...
 
     - name: Build
-      run: go build -v .
+      run: |
+        go build -v .
+        zip awsCodePipelineDeployer.zip awsCodePipelineDeployer
 
     - name: Test
       run: go test -v .
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v2
+      with:
+        name: build-output
+        path: awsCodePipelineDeployer.zip
+        retention-days: 5
