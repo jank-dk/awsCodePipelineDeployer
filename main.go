@@ -16,14 +16,14 @@ import (
 	"os"
 )
 
-func uploadFile(source *zip.File, bucket, prefix string, uploader *s3manager.Uploader) error {
+func uploadFile(ctx context.Context, source *zip.File, bucket, prefix string, uploader *s3manager.Uploader) error {
 	fileContents, err := source.Open()
 	if err != nil {
 		return err
 	}
 	defer fileContents.Close()
 
-	_, err = uploader.Upload(&s3manager.UploadInput{
+	_, err = uploader.UploadWithContext(ctx, &s3manager.UploadInput{
 		Bucket: &bucket,
 		Key:    aws.String(prefix + source.Name),
 		Body:   fileContents,
@@ -31,7 +31,7 @@ func uploadFile(source *zip.File, bucket, prefix string, uploader *s3manager.Upl
 	return err
 }
 
-func copyArtifact(artifact events.CodePipelineInputArtifact, destBucket, destPrefix string, downloader *s3manager.Downloader, uploader *s3manager.Uploader) error {
+func copyArtifact(ctx context.Context, artifact events.CodePipelineInputArtifact, destBucket, destPrefix string, downloader *s3manager.Downloader, uploader *s3manager.Uploader) error {
 	if artifact.Location.LocationType != "S3" {
 		return nil
 	}
@@ -45,7 +45,7 @@ func copyArtifact(artifact events.CodePipelineInputArtifact, destBucket, destPre
 		os.Remove(tempFile.Name())
 	}()
 
-	bytesRead, err := downloader.Download(tempFile, &s3.GetObjectInput{
+	bytesRead, err := downloader.DownloadWithContext(ctx, tempFile, &s3.GetObjectInput{
 		Bucket: &artifact.Location.S3Location.BucketName,
 		Key:    &artifact.Location.S3Location.ObjectKey,
 	})
@@ -59,7 +59,7 @@ func copyArtifact(artifact events.CodePipelineInputArtifact, destBucket, destPre
 	}
 
 	for _, file := range zipfile.File {
-		if err = uploadFile(file, destBucket, destPrefix, uploader); err != nil {
+		if err = uploadFile(ctx, file, destBucket, destPrefix, uploader); err != nil {
 			return err
 		}
 	}
@@ -101,7 +101,7 @@ func run(ctx context.Context, event events.CodePipelineEvent) error {
 	uploader := s3manager.NewUploader(destCfg)
 
 	for _, artifact := range event.CodePipelineJob.Data.InputArtifacts {
-		if err = copyArtifact(artifact, destBucket, destPrefix, downloader, uploader); err != nil {
+		if err = copyArtifact(ctx, artifact, destBucket, destPrefix, downloader, uploader); err != nil {
 			return err
 		}
 	}
