@@ -8,9 +8,9 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/service/codepipeline"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go-v2/service/codepipeline"
 	"io/ioutil"
 	"log"
 	"os"
@@ -25,8 +25,8 @@ func uploadFile(source *zip.File, bucket, prefix string, uploader *s3manager.Upl
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: &bucket,
-		Key:  aws.String(prefix + source.Name),
-		Body: fileContents,
+		Key:    aws.String(prefix + source.Name),
+		Body:   fileContents,
 	})
 	return err
 }
@@ -40,11 +40,14 @@ func copyArtifact(artifact events.CodePipelineInputArtifact, destBucket, destPre
 	if err != nil {
 		return err
 	}
-	defer tempFile.Close()
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempFile.Name())
+	}()
 
 	bytesRead, err := downloader.Download(tempFile, &s3.GetObjectInput{
 		Bucket: &artifact.Location.S3Location.BucketName,
-		Key: &artifact.Location.S3Location.ObjectKey,
+		Key:    &artifact.Location.S3Location.ObjectKey,
 	})
 	if err != nil {
 		return err
@@ -114,7 +117,7 @@ func HandleRequest(ctx context.Context, event events.CodePipelineEvent) (string,
 		if _, reportErr := cpClient.PutJobFailureResultRequest(&codepipeline.PutJobFailureResultInput{
 			JobId: &event.CodePipelineJob.ID,
 			FailureDetails: &codepipeline.FailureDetails{
-				Type: codepipeline.FailureTypeJobFailed,
+				Type:    codepipeline.FailureTypeJobFailed,
 				Message: aws.String(err.Error()),
 			},
 		}).Send(ctx); reportErr != nil {
